@@ -3909,6 +3909,14 @@ var ConnpassEventSource = (function () {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return MeetupEventSource; });
+var __assign = (this && this.__assign) || Object.assign || function(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+        s = arguments[i];
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+            t[p] = s[p];
+    }
+    return t;
+};
 var MeetupEventSource = (function () {
     function MeetupEventSource() {
     }
@@ -3924,28 +3932,25 @@ var MeetupEventSource = (function () {
         if (!this._dom) {
             throw new Error('Can\'t extract information until DOM fetched!');
         }
-        var users = {
-            admin: [],
-            participant: [],
-            waiting: [],
-        };
         var liItems = Array.from(this._dom.querySelectorAll('li[data-memberid]'));
-        var participantList = liItems.map(function (liItem, index) {
+        var records = liItems.map(function (liItem) {
             var name = liItem.querySelector('.member-name').textContent.trim();
             var avatar = liItem.querySelector('a.mem-photo-small').getAttribute('data-src');
-            return { name: name, avatar: avatar, index: index };
+            var hasRole = !!liItem.querySelector('.event-role');
+            return { user: { name: name, avatar: avatar, index: 0 }, hasRole: hasRole };
         });
-        users.participant = participantList;
-        return users;
+        var admin = records.filter(function (r) { return r.hasRole; }).map(function (r, i) { return (__assign({}, r.user, { index: i })); });
+        var participant = records.filter(function (r) { return !r.hasRole; }).map(function (r, i) { return (__assign({}, r.user, { index: i + admin.length })); });
+        var waiting = []; // FIXME...
+        return { admin: admin, participant: participant, waiting: waiting };
     };
     MeetupEventSource.prototype.extractEventInfo = function () {
         if (!this._dom) {
             throw new Error('Can\'t extract information until DOM fetched!');
         }
-        var titleFragments = (this._dom.title || 'unknown name').split(' - ');
-        var eventName = this._dom.querySelector('.text--display3');
+        var eventName = this._dom.querySelector('.text--display3') || this._dom.querySelector('.text--display2');
         return {
-            name: titleFragments.slice(0, titleFragments.length - 1).join(' - '),
+            name: eventName ? eventName.textContent : '',
             image: '',
         };
     };
